@@ -13,8 +13,9 @@ SPIN → WAGER → GET_READY → 5 × QUESTION → ROUND_RESULT
 ## Wager (15 s)
 - Every player must bet: minimum 60, maximum 500, in steps of 20.
 - If a player has less than 500 points, their maximum is their points, rounded down to a valid step (e.g. 333 → 320).
-- If a player doesn't choose, the minimum bet of 60 is placed automatically.
-- The phase ends early when every player has bet.
+- Players choose an amount with a slider and confirm it with the **Bet** button. A confirmed bet is final.
+- When time runs out, the current selection counts even if it isn't confirmed. If the slider was never moved, the minimum bet of 60 counts.
+- The phase ends early when every player has confirmed their bet.
 - A player with fewer than 60 points is out and spectates.
 
 ## Questions (20 s each)
@@ -34,6 +35,17 @@ The correct answers are revealed, then the bet is settled:
 | 3 | 0 |
 | 2 | −50% |
 | 0–1 | −100% |
+
+## Joining and leaving
+- Only players with a bet in the current round play that round.
+- A player who joins during a game spectates until the next round's betting phase.
+- A player who leaves loses their current bet. Their remaining game points go back to their wallet, they're removed from the game, and they don't appear in the final results.
+- They can come back later from a "recent lobbies" list if there's a free spot. They join as a new player, with a new buy-in.
+
+### Disconnects (Stage 3)
+- A lost connection has a grace period of 2 minutes.
+- If the player reconnects within it, they continue as if they never left. Questions that ended while they were away count with whatever was selected, or as wrong.
+- After 2 minutes without reconnecting, they're treated as having left.
 
 ## End of game
 After the last round, players are ranked by points won or lost in this game.

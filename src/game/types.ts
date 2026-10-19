@@ -4,6 +4,10 @@ export type PlayerAnswer = {
   answer: string;
   locked: boolean;
 };
+export type PlayerBet = {
+  amount: number;
+  locked: boolean;
+};
 
 export type Question = {
   id: string;
@@ -24,7 +28,7 @@ export type Player = {
 export type Round = {
   category: string;
   questions: Question[];
-  bets: Record<PlayerId, number>;
+  bets: Record<PlayerId, PlayerBet>;
   answers: Record<PlayerId, Record<QuestionId, PlayerAnswer>>;
   roundNumber: number;
 };
@@ -46,7 +50,7 @@ export type GameSettings = {
   minBet: number;
   maxBet: number;
   getReadyCountdown: number;
-  betSliderStep: number;
+  betStep: number;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -57,15 +61,14 @@ export const DEFAULT_SETTINGS: GameSettings = {
   minBet: 60,
   maxBet: 500,
   getReadyCountdown: 3,
-  betSliderStep: 20,
+  betStep: 20,
 };
 
 export type GameState = {
   phase: Phase;
   players: Record<PlayerId, Player>;
   round: Round | null;
-  currentQuestion: number;
-  questionsPerRound: number;
-  phaseEnd: number | null;
+  questionIndex: number;
+  phaseEndsAt: number | null;
   settings: GameSettings;
 };
