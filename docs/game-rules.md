@@ -5,10 +5,28 @@
 - A game is played with the player's wallet balance; the result is saved back at the end.
 - Players are ranked by net earnings in this game, not by total balance.
 
+## Starting a game
+- There is no host. Any player in the lobby can press **Start** once the lobby has at least 1 player (a setting; may become 2 later).
+- Pressing Start begins a **ready check**: a 60 s countdown. The player who pressed Start is automatically ready.
+- During the ready check, players press **Ready**, or **Leave** to leave the lobby. New players can still join, and see the same countdown.
+- The game starts when every player in the lobby is ready, or when the 60 s run out.
+- Players who weren't ready (AFK) stay in the game as spectators, like late arrivals: they play from the first round they bet in.
+
+Flow: LOBBY → READY_CHECK → first round
+
+## Screens
+- Every player sees the same show on their own device: wheel, question, answers, timer, reveals.
+- The lower part of the screen shows every player in the game (avatar, name, points).
+- A player's own selection is highlighted only on their screen. Others only see that a player has locked in, never what they picked.
+
 ## Game structure
 A game has N rounds (default 10). Each round:
 
 SPIN → WAGER → GET_READY → 5 × QUESTION → ROUND_RESULT
+
+## Spin (5 s)
+- The category and the round's 5 questions are picked **before** the wheel spins.
+- Every player's wheel animates for 5 s and lands on that same category. The animation never decides anything.
 
 ## Wager (15 s)
 - Every player must bet: minimum 60, maximum 500, in steps of 20.
@@ -53,6 +71,9 @@ After the last round, players are ranked by points won or lost in this game.
 ## Settings (may change)
 | Setting | Default |
 |---|---|
+| Minimum players to start | 1 |
+| Ready check time | 60 s |
+| Spin time | 5 s |
 | Rounds per game | 10 |
 | Questions per round | 5 |
 | Wager time | 15 s |

@@ -35,6 +35,8 @@ export type Round = {
 
 export type Phase =
   | "LOBBY"
+  | "READY_CHECK"
+  | "PICKING_CATEGORY"
   | "SPIN"
   | "BETS"
   | "GET_READY"
@@ -51,6 +53,9 @@ export type GameSettings = {
   maxBet: number;
   getReadyCountdown: number;
   betStep: number;
+  minPlayersToStart: number;
+  readyCheckSeconds: number;
+  spinSeconds: number;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -62,6 +67,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
   maxBet: 500,
   getReadyCountdown: 3,
   betStep: 20,
+  minPlayersToStart: 1,
+  readyCheckSeconds: 60,
+  spinSeconds: 5,
 };
 
 export type GameState = {
@@ -71,4 +79,5 @@ export type GameState = {
   questionIndex: number;
   phaseEndsAt: number | null;
   settings: GameSettings;
+  readyPlayerIds: Record<PlayerId, true>;
 };

@@ -2,7 +2,8 @@ import type { Player, PlayerId, Question, QuestionId } from "./types";
 
 export type GameAction =
   | { type: "PLAYER_JOINED"; player: Player }
-  | { type: "GAME_STARTED"; now: number }
+  | { type: "START_REQUESTED"; playerId: PlayerId; now: number }
+  | { type: "PLAYER_READY"; playerId: PlayerId; now: number }
   | {
       type: "CATEGORY_PICKED";
       category: string;
@@ -25,3 +26,8 @@ export type GameAction =
     }
   | { type: "TIME_UP"; now: number }
   | { type: "PLAYER_LEFT"; playerId: PlayerId; now: number };
+
+export type ActionOf<T extends GameAction["type"]> = Extract<
+  GameAction,
+  { type: T }
+>;
