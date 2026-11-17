@@ -1,5 +1,5 @@
 import type { ActionOf, GameAction } from "./actions";
-import { isEveryoneReady } from "./selectors";
+import { isEveryoneReady, isPhaseOver, toPickingCategory } from "./selectors";
 import type { GameSettings, GameState, PlayerId } from "./types";
 
 export function createInitialState(settings: GameSettings): GameState {
@@ -22,14 +22,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return handleStartRequested(state, action);
     case "PLAYER_READY":
       return handlePlayerReady(state, action);
+    case "CATEGORY_PICKED":
+      return handleCategoryPicked(state, action);
+    case "TIME_UP":
+      return handleTimeUp(state, action);
 
     // TODO: not implemented yet
-    case "CATEGORY_PICKED":
     case "BET_SELECTED":
     case "BET_LOCKED":
     case "ANSWER_SELECTED":
     case "ANSWER_LOCKED":
-    case "TIME_UP":
     case "PLAYER_LEFT":
       return state;
 
@@ -53,6 +55,16 @@ function handlePlayerJoined(
   };
 }
 
+function withReadyPlayers(
+  state: GameState,
+  readyPlayerIds: Record<PlayerId, true>,
+): GameState {
+  if (isEveryoneReady(state.players, readyPlayerIds)) {
+    return toPickingCategory(state);
+  }
+  return { ...state, readyPlayerIds };
+}
+
 function handleStartRequested(
   state: GameState,
   action: ActionOf<"START_REQUESTED">,
@@ -63,12 +75,13 @@ function handleStartRequested(
     return state;
   }
 
-  return {
+  const readyCheck: GameState = {
     ...state,
     phase: "READY_CHECK",
     phaseEndsAt: action.now + state.settings.readyCheckSeconds * 1000,
-    readyPlayerIds: { [action.playerId]: true },
   };
+
+  return withReadyPlayers(readyCheck, { [action.playerId]: true });
 }
 
 function handlePlayerReady(
@@ -78,23 +91,75 @@ function handlePlayerReady(
   if (state.phase !== "READY_CHECK") return state;
   if (!state.players[action.playerId]) return state;
 
-  const readyPlayerIds: Record<PlayerId, true> = {
+  return withReadyPlayers(state, {
     ...state.readyPlayerIds,
     [action.playerId]: true,
-  };
-
-  if (isEveryoneReady(state.players, readyPlayerIds)) {
-    return {
-      ...state,
-      phase: "PICKING_CATEGORY",
-      phaseEndsAt: null,
-      readyPlayerIds: {},
-    };
-  }
-
-  return { ...state, readyPlayerIds };
+  });
 }
 
-function assertNever(action: never): never {
-  throw new Error(`Unhandled action: ${JSON.stringify(action)}`);
+function assertNever(value: never): never {
+  throw new Error(`Unhandled action: ${JSON.stringify(value)}`);
+}
+
+function handleCategoryPicked(
+  state: GameState,
+  action: ActionOf<"CATEGORY_PICKED">,
+): GameState {
+  if (state.phase !== "PICKING_CATEGORY") return state;
+
+  return {
+    ...state,
+    phase: "SPIN",
+    phaseEndsAt: action.now + state.settings.spinSeconds * 1000,
+    questionIndex: 0,
+    round: {
+      category: action.category,
+      questions: action.questions,
+      bets: {},
+      answers: {},
+      roundNumber: (state.round?.roundNumber ?? 0) + 1,
+    },
+  };
+}
+
+function handleTimeUp(
+  state: GameState,
+  action: ActionOf<"TIME_UP">,
+): GameState {
+  if (!isPhaseOver(state, action.now)) return state;
+  const deadline = state.phaseEndsAt;
+
+  switch (state.phase) {
+    case "READY_CHECK":
+      return toPickingCategory(state);
+    case "SPIN":
+      return {
+        ...state,
+        phase: "BETS",
+        phaseEndsAt: deadline + state.settings.betTimerSeconds * 1000,
+      };
+    case "BETS":
+      return {
+        ...state,
+        phase: "GET_READY",
+        phaseEndsAt: deadline + state.settings.getReadyCountdown * 1000,
+      };
+    case "GET_READY":
+      return {
+        ...state,
+        phase: "QUESTIONS",
+        questionIndex: 0,
+        phaseEndsAt: deadline + state.settings.questionTimerSeconds * 1000,
+      };
+
+    //todo
+    case "LOBBY":
+    case "PICKING_CATEGORY":
+    case "QUESTIONS": // next step
+    case "ANSWERREVEAL":
+    case "FINAL_SCORE":
+      return state;
+    default:
+      return assertNever(state.phase);
+  }
 }

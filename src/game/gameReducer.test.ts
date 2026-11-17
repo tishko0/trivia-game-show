@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   createGameAtPickingCategory,
+  createGameAtSpin,
   createLobbyWithPlayers,
   makePlayer,
   makeQuestion,
+  timeUp,
 } from "./testHelper";
 import { createInitialState, gameReducer } from "./gameReducer";
 import { DEFAULT_SETTINGS } from "./types";
@@ -39,10 +41,14 @@ describe("gameReducer", () => {
       ...DEFAULT_SETTINGS,
       readyCheckSeconds: 60,
     });
-    const player = makePlayer();
+    const player = makePlayer({ id: "p1" });
+    const other = makePlayer({ id: "p2" });
 
-    const next = gameReducer(state, { type: "PLAYER_JOINED", player });
-    const startPhase = gameReducer(next, {
+    const lobby = gameReducer(
+      gameReducer(state, { type: "PLAYER_JOINED", player }),
+      { type: "PLAYER_JOINED", player: other },
+    );
+    const startPhase = gameReducer(lobby, {
       type: "START_REQUESTED",
       now,
       playerId: player.id,
@@ -74,21 +80,24 @@ describe("gameReducer", () => {
   });
 
   it("ignores a start request when the ready check is already running", () => {
-    const p1 = makePlayer({ id: "p1" });
-    const p2 = makePlayer({ id: "p2" });
-    const readyCheck = gameReducer(createLobbyWithPlayers(p1, p2), {
+    const readyCheck = createLobbyWithPlayers(
+      makePlayer({ id: "p1" }),
+      makePlayer({ id: "p2" }),
+    );
+    const started = gameReducer(readyCheck, {
       type: "START_REQUESTED",
-      playerId: "ana",
+      playerId: "p1",
       now: 1_000_000,
     });
+    expect(started.phase).toBe("READY_CHECK");
 
-    const next = gameReducer(readyCheck, {
+    const next = gameReducer(started, {
       type: "START_REQUESTED",
-      playerId: "ben",
+      playerId: "p2",
       now: 1_010_000,
     });
 
-    expect(next).toBe(readyCheck);
+    expect(next).toBe(started);
   });
 
   it("ignores a start request from a player who isn't in the lobby", () => {
@@ -132,6 +141,8 @@ describe("gameReducer", () => {
 
   it("creates round 1 when a category is picked", () => {
     const state = createGameAtPickingCategory(makePlayer({ id: "p1" }));
+    expect(state.phase).toBe("PICKING_CATEGORY");
+
     const questions = [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })];
 
     const next = gameReducer(state, {
@@ -148,5 +159,151 @@ describe("gameReducer", () => {
       answers: {},
       roundNumber: 1,
     });
+  });
+
+  it("goes straight to PICKING_CATEGORY when the only player presses Start", () => {
+    const lobby = createLobbyWithPlayers(makePlayer({ id: "p1" }));
+
+    const next = gameReducer(lobby, {
+      type: "START_REQUESTED",
+      playerId: "p1",
+      now: 1_000_000,
+    });
+
+    expect(next.phase).toBe("PICKING_CATEGORY");
+    expect(next.phaseEndsAt).toBe(null);
+  });
+
+  it("moves to SPIN with a deadline when a category is picked", () => {
+    const state = createGameAtPickingCategory(
+      makePlayer({ id: "p1" }),
+      makePlayer({ id: "p2" }),
+    );
+    expect(state.phase).toBe("PICKING_CATEGORY");
+
+    const next = gameReducer(state, {
+      type: "CATEGORY_PICKED",
+      category: "Geography",
+      questions: [makeQuestion()],
+      now: 1_000_000,
+    });
+
+    expect(next.phase).toBe("SPIN");
+    expect(next.phaseEndsAt).toBe(
+      1_000_000 + DEFAULT_SETTINGS.spinSeconds * 1000,
+    );
+  });
+
+  it("ignores a picked category outside PICKING_CATEGORY", () => {
+    const lobby = createLobbyWithPlayers(makePlayer({ id: "p1" }));
+
+    const next = gameReducer(lobby, {
+      type: "CATEGORY_PICKED",
+      category: "Geography",
+      questions: [makeQuestion()],
+      now: 1_000_000,
+    });
+
+    expect(next).toBe(lobby);
+  });
+
+  describe("TIME_UP", () => {
+    it("ignores a TIME_UP that arrives before the deadline", () => {
+      const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+
+      const next = gameReducer(spin, {
+        type: "TIME_UP",
+        now: (spin.phaseEndsAt ?? 0) - 1,
+      });
+
+      expect(next).toBe(spin);
+    });
+
+    it("ignores a TIME_UP in a phase without a deadline", () => {
+      const lobby = createLobbyWithPlayers(makePlayer({ id: "p1" }));
+
+      const next = gameReducer(lobby, { type: "TIME_UP", now: 9_999_999 });
+
+      expect(next).toBe(lobby);
+    });
+
+    it("ends the ready check when time runs out", () => {
+      const readyCheck = gameReducer(
+        createLobbyWithPlayers(
+          makePlayer({ id: "p1" }),
+          makePlayer({ id: "p2" }),
+        ),
+        { type: "START_REQUESTED", playerId: "p1", now: 1_000_000 },
+      );
+      expect(readyCheck.phase).toBe("READY_CHECK");
+
+      const next = timeUp(readyCheck);
+
+      expect(next.phase).toBe("PICKING_CATEGORY");
+      expect(next.phaseEndsAt).toBe(null);
+      expect(next.readyPlayerIds).toEqual({});
+    });
+
+    it("moves from SPIN to BETS", () => {
+      const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+
+      const next = timeUp(spin);
+
+      expect(next.phase).toBe("BETS");
+      expect(next.phaseEndsAt).toBe(
+        (spin.phaseEndsAt ?? 0) + DEFAULT_SETTINGS.betTimerSeconds * 1000,
+      );
+    });
+
+    it("moves from BETS to GET_READY", () => {
+      const bets = timeUp(createGameAtSpin(makePlayer({ id: "p1" })));
+      expect(bets.phase).toBe("BETS");
+
+      const next = timeUp(bets);
+
+      expect(next.phase).toBe("GET_READY");
+      expect(next.phaseEndsAt).toBe(
+        (bets.phaseEndsAt ?? 0) + DEFAULT_SETTINGS.getReadyCountdown * 1000,
+      );
+    });
+
+    it("moves from GET_READY to the first question", () => {
+      const getReady = timeUp(
+        timeUp(createGameAtSpin(makePlayer({ id: "p1" }))),
+      );
+      expect(getReady.phase).toBe("GET_READY");
+
+      const next = timeUp(getReady);
+
+      expect(next.phase).toBe("QUESTIONS");
+      expect(next.questionIndex).toBe(0);
+      expect(next.phaseEndsAt).toBe(
+        (getReady.phaseEndsAt ?? 0) +
+          DEFAULT_SETTINGS.questionTimerSeconds * 1000,
+      );
+    });
+  });
+
+  it("ignores other actions sent after the deadline", () => {
+    const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+
+    const next = gameReducer(spin, {
+      type: "BET_LOCKED",
+      playerId: "p1",
+      now: (spin.phaseEndsAt ?? 0) + 1,
+    });
+
+    expect(next).toBe(spin);
+  });
+
+  it("chains the next deadline from the previous one, not from a late timer", () => {
+    const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+    const deadline = spin.phaseEndsAt ?? 0;
+
+    const next = gameReducer(spin, { type: "TIME_UP", now: deadline + 300 });
+
+    expect(next.phaseEndsAt).toBe(
+      deadline + DEFAULT_SETTINGS.betTimerSeconds * 1000,
+    );
   });
 });

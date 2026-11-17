@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maxBetFor, isSpectating } from "./selectors";
+import { maxBetFor, isSpectating, isPhaseOver } from "./selectors";
 import { createLobbyWithPlayers, makePlayer } from "./testHelper";
 import { DEFAULT_SETTINGS } from "./types";
 
@@ -56,5 +56,22 @@ describe("isSpectating", () => {
       },
     };
     expect(isSpectating(state, "ana")).toBe(false);
+  });
+});
+
+describe("isPhaseOver", () => {
+  const lobby = createLobbyWithPlayers(makePlayer({ id: "p1" }));
+  const timed = { ...lobby, phaseEndsAt: 1_000_000 };
+
+  it("is false when the phase has no deadline", () => {
+    expect(isPhaseOver(lobby, 9_999_999)).toBe(false);
+  });
+
+  it.each([
+    [999_999, false],
+    [1_000_000, true],
+    [1_000_001, true],
+  ])("at now=%i returns %s", (now, expected) => {
+    expect(isPhaseOver(timed, now)).toBe(expected);
   });
 });

@@ -23,3 +23,19 @@ export function isSpectating(state: GameState, playerId: PlayerId): boolean {
 
   return round.bets[playerId] === undefined;
 }
+
+export function isPhaseOver(
+  state: GameState,
+  now: number,
+): state is GameState & { phaseEndsAt: number } {
+  return state.phaseEndsAt !== null && now >= state.phaseEndsAt;
+}
+
+export function toPickingCategory(state: GameState): GameState {
+  return {
+    ...state,
+    phase: "PICKING_CATEGORY",
+    phaseEndsAt: null,
+    readyPlayerIds: {},
+  };
+}
