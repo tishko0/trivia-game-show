@@ -54,11 +54,24 @@ export function handleTimeUp(
         questionIndex: 0,
         phaseEndsAt: deadline + state.settings.questionTimerSeconds * 1000,
       };
-
-    //todo
+    case "QUESTIONS": {
+      const round = state.round;
+      if (!round) return state;
+      if (state.questionIndex + 1 < round.questions.length) {
+        return {
+          ...state,
+          questionIndex: state.questionIndex + 1,
+          phaseEndsAt: deadline + state.settings.questionTimerSeconds * 1000,
+        };
+      }
+      return {
+        ...state,
+        phaseEndsAt: deadline + state.settings.answerRevealSeconds * 1000,
+        phase: "ANSWERREVEAL",
+      };
+    }
     case "LOBBY":
     case "PICKING_CATEGORY":
-    case "QUESTIONS": // next step
     case "ANSWERREVEAL":
     case "FINAL_SCORE":
       return state;

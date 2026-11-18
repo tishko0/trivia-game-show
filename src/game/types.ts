@@ -56,6 +56,7 @@ export type GameSettings = {
   minPlayersToStart: number;
   readyCheckSeconds: number;
   spinSeconds: number;
+  answerRevealSeconds: number;
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -70,6 +71,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   minPlayersToStart: 1,
   readyCheckSeconds: 60,
   spinSeconds: 5,
+  answerRevealSeconds: 8,
 };
 
 export type GameState = {

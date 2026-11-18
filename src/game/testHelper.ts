@@ -77,3 +77,7 @@ export function timeUp(state: GameState): GameState {
   }
   return gameReducer(state, { type: "TIME_UP", now: state.phaseEndsAt });
 }
+
+export function createGameAtQuestions(...players: Player[]): GameState {
+  return timeUp(timeUp(timeUp(createGameAtSpin(...players))));
+}

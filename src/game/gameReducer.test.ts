@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createGameAtPickingCategory,
+  createGameAtQuestions,
   createGameAtSpin,
   createLobbyWithPlayers,
   makePlayer,
@@ -282,28 +283,55 @@ describe("gameReducer", () => {
           DEFAULT_SETTINGS.questionTimerSeconds * 1000,
       );
     });
-  });
 
-  it("ignores other actions sent after the deadline", () => {
-    const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+    it("ignores other actions sent after the deadline", () => {
+      const spin = createGameAtSpin(makePlayer({ id: "p1" }));
 
-    const next = gameReducer(spin, {
-      type: "BET_LOCKED",
-      playerId: "p1",
-      now: (spin.phaseEndsAt ?? 0) + 1,
+      const next = gameReducer(spin, {
+        type: "BET_LOCKED",
+        playerId: "p1",
+        now: (spin.phaseEndsAt ?? 0) + 1,
+      });
+
+      expect(next).toBe(spin);
     });
 
-    expect(next).toBe(spin);
-  });
+    it("chains the next deadline from the previous one, not from a late timer", () => {
+      const spin = createGameAtSpin(makePlayer({ id: "p1" }));
+      const deadline = spin.phaseEndsAt ?? 0;
 
-  it("chains the next deadline from the previous one, not from a late timer", () => {
-    const spin = createGameAtSpin(makePlayer({ id: "p1" }));
-    const deadline = spin.phaseEndsAt ?? 0;
+      const next = gameReducer(spin, { type: "TIME_UP", now: deadline + 300 });
 
-    const next = gameReducer(spin, { type: "TIME_UP", now: deadline + 300 });
+      expect(next.phaseEndsAt).toBe(
+        deadline + DEFAULT_SETTINGS.betTimerSeconds * 1000,
+      );
+    });
 
-    expect(next.phaseEndsAt).toBe(
-      deadline + DEFAULT_SETTINGS.betTimerSeconds * 1000,
-    );
+    it("moves to the next question when time runs out", () => {
+      const first = createGameAtQuestions(makePlayer({ id: "p1" }));
+      expect(first.phase).toBe("QUESTIONS");
+      expect(first.questionIndex).toBe(0);
+
+      const next = timeUp(first);
+
+      expect(next.phase).toBe("QUESTIONS");
+      expect(next.questionIndex).toBe(1);
+      expect(next.phaseEndsAt).toBe(
+        (first.phaseEndsAt ?? 0) + DEFAULT_SETTINGS.questionTimerSeconds * 1000,
+      );
+    });
+
+    it("moves to ANSWERREVEAL after the last question", () => {
+      let state = createGameAtQuestions(makePlayer({ id: "p1" }));
+      for (let i = 0; i < 4; i++) state = timeUp(state);
+      expect(state.questionIndex).toBe(4);
+
+      const next = timeUp(state);
+
+      expect(next.phase).toBe("ANSWERREVEAL");
+      expect(next.phaseEndsAt).toBe(
+        (state.phaseEndsAt ?? 0) + DEFAULT_SETTINGS.answerRevealSeconds * 1000,
+      );
+    });
   });
 });
