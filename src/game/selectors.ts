@@ -1,4 +1,10 @@
-import type { GameSettings, GameState, Player, PlayerId } from "./types";
+import type {
+  GameSettings,
+  GameState,
+  Player,
+  PlayerId,
+  Question,
+} from "./types";
 
 export function isEveryoneReady(
   players: Record<PlayerId, Player>,
@@ -29,4 +35,8 @@ export function isPhaseOver(
   now: number,
 ): state is GameState & { phaseEndsAt: number } {
   return state.phaseEndsAt !== null && now >= state.phaseEndsAt;
+}
+
+export function answerOptions(question: Question): string[] {
+  return [question.correctAnswer, ...question.wrongAnswers];
 }

@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   type GameState,
   type Player,
+  type PlayerId,
   type Question,
 } from "./types";
 
@@ -80,4 +81,16 @@ export function timeUp(state: GameState): GameState {
 
 export function createGameAtQuestions(...players: Player[]): GameState {
   return timeUp(timeUp(timeUp(createGameAtSpin(...players))));
+}
+
+export function withBets(
+  state: GameState,
+  ...playerIds: PlayerId[]
+): GameState {
+  if (!state.round) throw new Error("withBets needs a round");
+
+  const bets = { ...state.round.bets };
+  for (const id of playerIds) bets[id] = { amount: 60, locked: true };
+
+  return { ...state, round: { ...state.round, bets } };
 }

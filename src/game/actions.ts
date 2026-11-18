@@ -17,6 +17,7 @@ export type GameAction =
       playerId: PlayerId;
       questionId: QuestionId;
       answer: string;
+      now: number;
     }
   | {
       type: "ANSWER_LOCKED";

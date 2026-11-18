@@ -7,6 +7,7 @@ import {
 } from "./handlers/lobby";
 import { handleCategoryPicked, handleTimeUp } from "./handlers/round";
 import type { GameSettings, GameState } from "./types";
+import { handleAnswerLocked, handleAnswerSelected } from "./handlers/answer";
 
 export function createInitialState(settings: GameSettings): GameState {
   return {
@@ -32,12 +33,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return handleCategoryPicked(state, action);
     case "TIME_UP":
       return handleTimeUp(state, action);
-
-    // TODO: not implemented yet
-    case "BET_SELECTED":
-    case "BET_LOCKED":
     case "ANSWER_SELECTED":
+      return handleAnswerSelected(state, action);
     case "ANSWER_LOCKED":
+      return handleAnswerLocked(state, action);
+
+    case "BET_LOCKED":
+    case "BET_SELECTED":
     case "PLAYER_LEFT":
       return state;
 
