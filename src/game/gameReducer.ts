@@ -37,7 +37,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return handleAnswerSelected(state, action);
     case "ANSWER_LOCKED":
       return handleAnswerLocked(state, action);
-
     case "BET_LOCKED":
     case "BET_SELECTED":
     case "PLAYER_LEFT":

@@ -40,3 +40,15 @@ export function isPhaseOver(
 export function answerOptions(question: Question): string[] {
   return [question.correctAnswer, ...question.wrongAnswers];
 }
+
+export function isEveryoneLocked(state: GameState): boolean {
+  const round = state.round;
+  if (!round) return false;
+  const firstQuestion = round.questions[state.questionIndex];
+
+  return Object.keys(round.bets).every((playerId) => {
+    if (!firstQuestion) return false;
+
+    return round.answers[playerId]?.[firstQuestion.id]?.locked === true;
+  });
+}

@@ -70,12 +70,35 @@ export function handleTimeUp(
         phase: "ANSWERREVEAL",
       };
     }
+    case "ANSWERREVEAL":
+      return toNextQuestion(
+        state,
+        deadline + state.settings.answerRevealSeconds * 1000,
+      );
     case "LOBBY":
     case "PICKING_CATEGORY":
-    case "ANSWERREVEAL":
     case "FINAL_SCORE":
       return state;
     default:
       return assertNever(state.phase);
   }
+}
+
+export function toNextQuestion(state: GameState, startAt: number): GameState {
+  const round = state.round;
+  if (!round) return state;
+
+  if (state.questionIndex + 1 < round.questions.length) {
+    return {
+      ...state,
+      questionIndex: state.questionIndex + 1,
+      phaseEndsAt: startAt + state.settings.questionTimerSeconds * 1000,
+    };
+  }
+
+  return {
+    ...state,
+    phaseEndsAt: startAt + state.settings.answerRevealSeconds * 1000,
+    phase: "ANSWERREVEAL",
+  };
 }

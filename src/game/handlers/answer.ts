@@ -1,6 +1,12 @@
 import type { ActionOf } from "../actions";
-import { answerOptions, isPhaseOver, isSpectating } from "../selectors";
+import {
+  answerOptions,
+  isEveryoneLocked,
+  isPhaseOver,
+  isSpectating,
+} from "../selectors";
 import type { GameState } from "../types";
+import { toNextQuestion } from "./round";
 
 export function handleAnswerSelected(
   state: GameState,
@@ -56,7 +62,7 @@ export function handleAnswerLocked(
   if (!existingAnswer) return state;
   if (existingAnswer.locked) return state;
 
-  return {
+  const next = {
     ...state,
     round: {
       ...state.round,
@@ -72,4 +78,8 @@ export function handleAnswerLocked(
       },
     },
   };
+
+  if (isEveryoneLocked(next)) return toNextQuestion(next, action.now);
+
+  return next;
 }

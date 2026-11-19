@@ -4,9 +4,10 @@ import {
   createGameAtQuestions,
   createGameAtSpin,
   makePlayer,
+  timeUp,
   withBets,
 } from "./testHelper";
-import type { GameState, PlayerId } from "./types";
+import { DEFAULT_SETTINGS, type GameState, type PlayerId } from "./types";
 
 const p1 = makePlayer({ id: "p1" });
 const p2 = makePlayer({ id: "p2" });
@@ -65,7 +66,7 @@ describe("ANSWER_SELECTED", () => {
     expect(next.round?.answers.p1?.q1?.answer).toBe("Berlin");
   });
 
-  it("keeps other players' answers and untouched state as the same objects", () => {
+  it("copies only the changed player's path; other answers, bets and players stay the same objects", () => {
     const withP2 = select(createPlayingGame(), "p2", "London");
 
     const next = select(withP2, "p1", "Paris");
@@ -81,6 +82,16 @@ describe("ANSWER_SELECTED", () => {
     const next = select(spin, "p1", "Paris");
 
     expect(next).toBe(spin);
+  });
+
+  it("ignores a late selection on the last question during ANSWERREVEAL", () => {
+    let state = createPlayingGame();
+    for (let i = 0; i < 5; i++) state = timeUp(state);
+    expect(state.phase).toBe("ANSWERREVEAL");
+
+    const next = select(state, "p1", "Paris", "q5");
+
+    expect(next).toBe(state);
   });
 
   it("ignores a selection after the deadline", () => {
@@ -169,5 +180,63 @@ describe("ANSWER_LOCKED", () => {
     });
 
     expect(next).toBe(selected);
+  });
+  it("waits for the other players when only one has locked", () => {
+    const next = lock(select(createPlayingGame(), "p1", "Paris"), "p1");
+
+    expect(next.phase).toBe("QUESTIONS");
+    expect(next.questionIndex).toBe(0);
+  });
+
+  it("moves to the next question as soon as everyone has locked", () => {
+    let state = createPlayingGame();
+    state = lock(select(state, "p1", "Paris"), "p1");
+    state = select(state, "p2", "Berlin");
+    const now = beforeDeadline(state);
+
+    const next = gameReducer(state, {
+      type: "ANSWER_LOCKED",
+      playerId: "p2",
+      questionId: "q1",
+      now,
+    });
+
+    expect(next.questionIndex).toBe(1);
+    expect(next.phaseEndsAt).toBe(
+      now + DEFAULT_SETTINGS.questionTimerSeconds * 1000,
+    );
+  });
+
+  it("ignores spectators when deciding whether everyone has locked", () => {
+    const state = withBets(createGameAtQuestions(p1, p2), "p1");
+
+    const next = lock(select(state, "p1", "Paris"), "p1");
+
+    expect(next.questionIndex).toBe(1);
+  });
+
+  it("everyone has locked the last question and the game moves to ANSWERREVEAL", () => {
+    let state = createPlayingGame();
+    for (let i = 0; i <= 4; i++) {
+      state = lock(select(state, "p1", "Paris", `q${i}`), "p1", `q${i}`);
+      state = lock(select(state, "p2", "Berlin", `q${i}`), "p2", `q${i}`);
+    }
+    state = lock(select(state, "p1", "Paris", "q5"), "p1", "q5");
+    state = select(state, "p2", "Berlin", "q5");
+    expect(state.questionIndex).toBe(4);
+
+    const now = beforeDeadline(state);
+
+    const next = gameReducer(state, {
+      type: "ANSWER_LOCKED",
+      playerId: "p2",
+      questionId: "q5",
+      now,
+    });
+
+    expect(next.phase).toBe("ANSWERREVEAL");
+    expect(next.phaseEndsAt).toBe(
+      now + DEFAULT_SETTINGS.answerRevealSeconds * 1000,
+    );
   });
 });
