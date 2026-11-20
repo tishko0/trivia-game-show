@@ -42,11 +42,7 @@ export function handleTimeUp(
         phaseEndsAt: deadline + state.settings.betTimerSeconds * 1000,
       };
     case "BETS":
-      return {
-        ...state,
-        phase: "GET_READY",
-        phaseEndsAt: deadline + state.settings.getReadyCountdown * 1000,
-      };
+      return toGetReady(state, deadline);
     case "GET_READY":
       return {
         ...state,
@@ -55,26 +51,10 @@ export function handleTimeUp(
         phaseEndsAt: deadline + state.settings.questionTimerSeconds * 1000,
       };
     case "QUESTIONS": {
-      const round = state.round;
-      if (!round) return state;
-      if (state.questionIndex + 1 < round.questions.length) {
-        return {
-          ...state,
-          questionIndex: state.questionIndex + 1,
-          phaseEndsAt: deadline + state.settings.questionTimerSeconds * 1000,
-        };
-      }
-      return {
-        ...state,
-        phaseEndsAt: deadline + state.settings.answerRevealSeconds * 1000,
-        phase: "ANSWERREVEAL",
-      };
+      return toNextQuestion(state, deadline);
     }
     case "ANSWERREVEAL":
-      return toNextQuestion(
-        state,
-        deadline + state.settings.answerRevealSeconds * 1000,
-      );
+      return state;
     case "LOBBY":
     case "PICKING_CATEGORY":
     case "FINAL_SCORE":
@@ -100,5 +80,13 @@ export function toNextQuestion(state: GameState, startAt: number): GameState {
     ...state,
     phaseEndsAt: startAt + state.settings.answerRevealSeconds * 1000,
     phase: "ANSWERREVEAL",
+  };
+}
+
+export function toGetReady(state: GameState, startAt: number): GameState {
+  return {
+    ...state,
+    phase: "GET_READY",
+    phaseEndsAt: startAt + state.settings.getReadyCountdown * 1000,
   };
 }

@@ -52,3 +52,24 @@ export function isEveryoneLocked(state: GameState): boolean {
     return round.answers[playerId]?.[firstQuestion.id]?.locked === true;
   });
 }
+
+export function isValidBet(
+  amount: number,
+  points: number,
+  settings: GameSettings,
+): boolean {
+  const { minBet, betStep } = settings;
+  if (amount < minBet) return false;
+  if (amount > maxBetFor(points, settings)) return false;
+
+  return (amount - minBet) % betStep === 0;
+}
+
+export function isEveryoneBetLocked(state: GameState): boolean {
+  const round = state.round;
+  if (!round) return false;
+
+  return Object.values(state.players)
+    .filter((player) => maxBetFor(player.gamePoints, state.settings) > 0)
+    .every((player) => round.bets[player.id]?.locked === true);
+}

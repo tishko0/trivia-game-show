@@ -10,7 +10,7 @@ export type GameAction =
       questions: Question[];
       now: number;
     }
-  | { type: "BET_SELECTED"; playerId: PlayerId; amount: number }
+  | { type: "BET_SELECTED"; playerId: PlayerId; amount: number; now: number }
   | { type: "BET_LOCKED"; playerId: PlayerId; now: number }
   | {
       type: "ANSWER_SELECTED";

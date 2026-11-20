@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { maxBetFor, isSpectating, isPhaseOver } from "./selectors";
+import { maxBetFor, isSpectating, isPhaseOver } from "./../selectors";
 import { createLobbyWithPlayers, makePlayer } from "./testHelper";
-import { DEFAULT_SETTINGS } from "./types";
+import { DEFAULT_SETTINGS } from "./../types";
 
 describe("maxBetFor", () => {
   it.each([

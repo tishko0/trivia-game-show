@@ -8,8 +8,8 @@ import {
   makeQuestion,
   timeUp,
 } from "./testHelper";
-import { createInitialState, gameReducer } from "./gameReducer";
-import { DEFAULT_SETTINGS } from "./types";
+import { createInitialState, gameReducer } from "./../gameReducer";
+import { DEFAULT_SETTINGS } from "./../types";
 
 describe("gameReducer", () => {
   it("adds a player who joins the lobby", () => {

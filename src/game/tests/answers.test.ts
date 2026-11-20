@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { gameReducer } from "./gameReducer";
+import { gameReducer } from "./../gameReducer";
 import {
-  createGameAtQuestions,
-  createGameAtSpin,
+  createGameAtBets,
+  createGameAtQuestionsWithBets,
   makePlayer,
+  placeBet,
   timeUp,
-  withBets,
 } from "./testHelper";
-import { DEFAULT_SETTINGS, type GameState, type PlayerId } from "./types";
+import { DEFAULT_SETTINGS, type GameState, type PlayerId } from "./../types";
 
 const p1 = makePlayer({ id: "p1" });
 const p2 = makePlayer({ id: "p2" });
 
 function createPlayingGame(): GameState {
-  return withBets(createGameAtQuestions(p1, p2), "p1", "p2");
+  return createGameAtQuestionsWithBets([p1, p2], ["p1", "p2"]);
 }
 
 function beforeDeadline(state: GameState): number {
@@ -77,7 +77,7 @@ describe("ANSWER_SELECTED", () => {
   });
 
   it("ignores a selection outside QUESTIONS", () => {
-    const spin = withBets(createGameAtSpin(p1), "p1");
+    const spin = placeBet(createGameAtBets(p1, p2), "p1");
 
     const next = select(spin, "p1", "Paris");
 
@@ -109,7 +109,7 @@ describe("ANSWER_SELECTED", () => {
   });
 
   it("ignores a selection from a spectator", () => {
-    const state = withBets(createGameAtQuestions(p1, p2), "p1");
+    const state = createGameAtQuestionsWithBets([p1, p2], ["p1"]);
 
     const next = select(state, "p2", "Paris");
 
@@ -208,7 +208,7 @@ describe("ANSWER_LOCKED", () => {
   });
 
   it("ignores spectators when deciding whether everyone has locked", () => {
-    const state = withBets(createGameAtQuestions(p1, p2), "p1");
+    const state = createGameAtQuestionsWithBets([p1, p2], ["p1"]);
 
     const next = lock(select(state, "p1", "Paris"), "p1");
 

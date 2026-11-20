@@ -1,11 +1,11 @@
-import { createInitialState, gameReducer } from "./gameReducer";
+import { createInitialState, gameReducer } from "./../gameReducer";
 import {
   DEFAULT_SETTINGS,
   type GameState,
   type Player,
   type PlayerId,
   type Question,
-} from "./types";
+} from "./../types";
 
 export function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
@@ -83,14 +83,31 @@ export function createGameAtQuestions(...players: Player[]): GameState {
   return timeUp(timeUp(timeUp(createGameAtSpin(...players))));
 }
 
-export function withBets(
+export function createGameAtBets(...players: Player[]): GameState {
+  return timeUp(createGameAtSpin(...players));
+}
+
+export function placeBet(
   state: GameState,
-  ...playerIds: PlayerId[]
+  playerId: PlayerId,
+  amount = 60,
 ): GameState {
-  if (!state.round) throw new Error("withBets needs a round");
+  const now = (state.phaseEndsAt ?? 0) - 1;
+  const selected = gameReducer(state, {
+    type: "BET_SELECTED",
+    playerId,
+    amount,
+    now,
+  });
+  return gameReducer(selected, { type: "BET_LOCKED", playerId, now });
+}
 
-  const bets = { ...state.round.bets };
-  for (const id of playerIds) bets[id] = { amount: 60, locked: true };
-
-  return { ...state, round: { ...state.round, bets } };
+export function createGameAtQuestionsWithBets(
+  players: Player[],
+  bettorIds: PlayerId[],
+): GameState {
+  let state = createGameAtBets(...players);
+  for (const id of bettorIds) state = placeBet(state, id);
+  if (state.phase === "BETS") state = timeUp(state);
+  return timeUp(state);
 }
